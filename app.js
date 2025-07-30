@@ -12,6 +12,9 @@ const app = new App({
 // Temporary memory for Slack thread <-> Jira key
 const threadToJiraKey = {};
 
+// === AJOUT pour ne DM qu'une fois par utilisateur ===
+const greetedUsers = new Set();
+
 // Retrieve the history of a Slack thread
 async function getThreadHistory(channel, thread_ts, token) {
   const res = await axios.get('https://slack.com/api/conversations.replies', {
@@ -288,6 +291,22 @@ app.command('/ticket', async ({ command, ack, respond }) => {
     await respond(`:white_check_mark: Jira ticket created: <${process.env.JIRA_BASE_URL}/browse/${jiraKey}|${jiraKey}>`);
   } else {
     await respond(`:x: Error while creating the Jira ticket.`);
+  }
+});
+
+// Handler pour envoyer un DM UNE SEULE FOIS quand un utilisateur ouvre l'app (Accueil)
+app.event('app_home_opened', async ({ event, client }) => {
+  try {
+    // On ne DM que si l'utilisateur n'a pas déjà reçu le message
+    if (!greetedUsers.has(event.user)) {
+      await client.chat.postMessage({
+        channel: event.user,
+        text: "Ethan dit hello",
+      });
+      greetedUsers.add(event.user);
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'envoi du DM :", error);
   }
 });
 
