@@ -1,12 +1,12 @@
+// Désactive le bodyParser Next.js (important !)
 export const config = {
   api: {
-    bodyParser: false, // Désactive le body parser natif
+    bodyParser: false,
   },
 };
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
-    // Lis le body brut
     let body = "";
     await new Promise((resolve) => {
       req.on("data", (chunk) => {
@@ -22,12 +22,12 @@ export default async function handler(req, res) {
       return res.status(400).send("Invalid JSON");
     }
 
-    // Répond au challenge Slack
+    // Répond au challenge
     if (data && data.challenge) {
       return res.status(200).json({ challenge: data.challenge });
     }
 
-    // Ici, traite les events Slack si besoin
+    // (Ici, tu traites les autres events Slack plus tard)
     return res.status(200).send("OK");
   }
 
