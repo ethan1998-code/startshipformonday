@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(body);
     } catch (e) {
-      console.log("Failed to parse JSON");
+      console.log("Failed to parse JSON:", e);
       return res.status(400).send("Invalid JSON");
     }
 
