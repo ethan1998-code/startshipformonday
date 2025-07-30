@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@slack/bolt": "^4.4.0",
+    "@slack/oauth": "^3.0.3",
     "axios": "^1.11.0",
     "dotenv": "^17.2.1"
   }
