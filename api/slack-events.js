@@ -1,4 +1,3 @@
-// Désactive le bodyParser Next.js (important !)
 export const config = {
   api: {
     bodyParser: false,
@@ -22,14 +21,13 @@ export default async function handler(req, res) {
       return res.status(400).send("Invalid JSON");
     }
 
-    // Répond au challenge
     if (data && data.challenge) {
+      // Réponse attendue exactement par Slack
       return res.status(200).json({ challenge: data.challenge });
     }
 
-    // (Ici, tu traites les autres events Slack plus tard)
     return res.status(200).send("OK");
+  } else {
+    res.status(405).send("Method Not Allowed");
   }
-
-  res.status(405).send("Method Not Allowed");
 }
