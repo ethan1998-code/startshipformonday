@@ -12,7 +12,7 @@ const app = new App({
 // Temporary memory for Slack thread <-> Jira key
 const threadToJiraKey = {};
 
-// === AJOUT pour ne DM qu'une fois par utilisateur ===
+// Only DM once per user
 const greetedUsers = new Set();
 
 // Retrieve the history of a Slack thread
@@ -175,9 +175,8 @@ async function assignJiraTicket(issueKey, accountId) {
   }
 }
 
-// Handler for @starshipv1 (mention)
+// Handler for @starship (mention)
 app.event('app_mention', async ({ event, client, say }) => {
-  // Ephemeral message (visible only to the user)
   await client.chat.postEphemeral({
     channel: event.channel,
     user: event.user,
@@ -208,7 +207,6 @@ app.event('app_mention', async ({ event, client, say }) => {
       const { title, description: aiDesc } = parseOpenAIResponse(aiText);
       summary = title;
 
-      // Slack thread link
       const threadUrl = `https://${process.env.SLACK_WORKSPACE}.slack.com/archives/${event.channel}/p${event.thread_ts.replace('.', '')}`;
       description = `${aiDesc}\n\n[View Slack conversation](${threadUrl})`;
 
@@ -230,10 +228,8 @@ app.event('app_mention', async ({ event, client, say }) => {
   const jiraKey = await createJiraTicket(summary, description);
 
   if (jiraKey) {
-    // Store the mapping thread <-> Jira ticket
     threadToJiraKey[event.thread_ts || event.ts] = jiraKey;
 
-    // If the user wants to assign someone to the ticket
     if (assignee) {
       const user = await findJiraUser(assignee);
       if (!user) {
@@ -294,23 +290,115 @@ app.command('/ticket', async ({ command, ack, respond }) => {
   }
 });
 
-// Handler pour envoyer un DM UNE SEULE FOIS quand un utilisateur ouvre l'app (Accueil)
+// Home Tab handler for custom homepage
 app.event('app_home_opened', async ({ event, client }) => {
   try {
-    // On ne DM que si l'utilisateur n'a pas déjà reçu le message
+    await client.views.publish({
+      user_id: event.user,
+      view: {
+        type: 'home',
+        callback_id: 'home_view',
+        blocks: [
+          {
+            type: "header",
+            text: { type: "plain_text", text: "Starship AI" }
+          },
+          {
+            type: "section",
+            text: { type: "mrkdwn", text: "*Create Jira tickets instantly!*" }
+          },
+          {
+            type: "divider"
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text:
+                "*Create tickets in seconds*\n\n" +
+                "1. `@Starship` *in a thread*\n" +
+                "I'll organize the conversation into a ticket, and post it on the thread on your behalf.\n" +
+                "I'll also follow up in the thread when the ticket is marked as done.\n\n" +
+                "2. *Direct message Starship with* `create...` *or* `make...`\n" +
+                "Example: `create a bug for a login issue on iOS. Put in mobile bugs epic. Assign to Joe.`\n\n" +
+                "3. *Use* `/ticket`\n" +
+                "Use `/ticket` to create an issue from anywhere.\n" +
+                "Example: `/ticket make a new task for the profile update in the next sprint`\n\n" +
+                "4. *Forward messages to Starship*\n" +
+                "Forward a message or thread, and I'll turn it into a ticket.\n\n" +
+                "I can also analyze images 🖼️ while creating tickets."
+            }
+          },
+          {
+            type: "divider"
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text:
+                "*Adjust Settings*\n" +
+                "*Want to adjust your Jira settings?*\n" +
+                "• Choose your Jira project & boards.\n" +
+                "• Configure multiple Jira projects.\n" +
+                "• Add custom fields to populate.\n\n" +
+                "Send me a direct message saying `settings`."
+            }
+          },
+          {
+            type: "image",
+            image_url: "https://cdn-icons-png.flaticon.com/512/3774/3774299.png", // Replace with your Starship logo if you want
+            alt_text: "Starship Logo"
+          }
+        ]
+      }
+    });
+  } catch (error) {
+    console.error("Error publishing Home Tab:", error);
+  }
+});
+
+// Handler to send a DM ONLY ONCE when a user opens the app (optional)
+app.event('app_home_opened_dm', async ({ event, client }) => {
+  try {
+    // Only DM if the user hasn't already received the message
     if (!greetedUsers.has(event.user)) {
       await client.chat.postMessage({
         channel: event.user,
-        text: "Ethan dit hello",
+        text: "Ethan says hello",
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "Ethan says hello"
+            }
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "Connect to Jira",
+                  emoji: true
+                },
+                style: "primary",
+                url: "https://google.com"
+              }
+            ]
+          }
+        ]
       });
       greetedUsers.add(event.user);
     }
   } catch (error) {
-    console.error("Erreur lors de l'envoi du DM :", error);
+    console.error("Error sending DM:", error);
   }
 });
 
 (async () => {
   await app.start();
-  console.log('⚡️ Bolt app running!');
+  console.log('⚡️ Starship Bolt app running!');
 })();
