@@ -114,27 +114,36 @@ async function sendSlackResponse(responseUrl, message) {
 async function handleTicketCommand(commandData) {
   try {
     console.log('🎫 Processing /ticket command:', commandData.text);
+    console.log('🎫 Command data:', JSON.stringify(commandData, null, 2));
     
     const ticketData = {
       summary: commandData.text || 'Nouveau ticket créé depuis Slack',
-      description: `Ticket créé par ${commandData.user_name} (@${commandData.user_id}) depuis Slack\n\nDescription: ${commandData.text || 'Aucune description fournie'}`,
-      assigneeAccountId: null
+      description: `Ticket créé par ${commandData.user_name} (@${commandData.user_id}) depuis Slack
+
+Description: ${commandData.text || 'Aucune description fournie'}`,
     };
 
+    console.log('🎫 Creating Jira ticket with data:', ticketData);
+    
+    // Create Jira ticket
     const ticket = await createJiraTicket(ticketData);
     
     if (ticket && ticket.key) {
-      const jiraUrl = `${process.env.JIRA_BASE_URL}/browse/${ticket.key}`;
+      console.log('🎫 Ticket created successfully:', ticket.key);
       
       const response = {
         response_type: 'in_channel',
-        text: `✅ Ticket Jira créé avec succès !`,
+        text: `✅ Ticket Jira créé avec succès!`,
         blocks: [
           {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: `✅ *Ticket Jira créé avec succès !*\n\n*Ticket:* <${jiraUrl}|${ticket.key}>\n*Titre:* ${ticketData.summary}\n*Créé par:* <@${commandData.user_id}>`
+              text: `*✅ Ticket Jira créé avec succès!*
+
+*Titre:* ${ticketData.summary}
+*Clé:* <${process.env.JIRA_BASE_URL}/browse/${ticket.key}|${ticket.key}>
+*Créé par:* <@${commandData.user_id}>`
             }
           }
         ]
@@ -149,13 +158,20 @@ async function handleTicketCommand(commandData) {
     }
   } catch (error) {
     console.error('❌ Error creating Jira ticket:', error);
+    console.error('❌ Error stack:', error.stack);
     
     const errorResponse = {
       response_type: 'ephemeral',
       text: `❌ Erreur lors de la création du ticket Jira: ${error.message}`
     };
     
-    await sendSlackResponse(commandData.response_url, errorResponse);
+    try {
+      await sendSlackResponse(commandData.response_url, errorResponse);
+      console.log('✅ Error response sent to Slack');
+    } catch (responseError) {
+      console.error('❌ Failed to send error response:', responseError);
+    }
+    
     return { statusCode: 200, body: '' };
   }
 }
@@ -264,13 +280,21 @@ export default async function handler(req, res) {
     // Handle /ticket command
     if (formData.command === '/ticket') {
       console.log('🎫 /ticket command detected');
+      console.log('🎫 Sending immediate acknowledgment...');
       
       // Send immediate acknowledgment
       res.status(200).send('');
       
       // Process command asynchronously
+      console.log('🎫 Starting async processing...');
       setTimeout(async () => {
-        await handleTicketCommand(formData);
+        try {
+          console.log('🎫 Async processing started for /ticket command');
+          await handleTicketCommand(formData);
+          console.log('🎫 Async processing completed');
+        } catch (error) {
+          console.error('❌ Error in async processing:', error);
+        }
       }, 100);
       
       return;
