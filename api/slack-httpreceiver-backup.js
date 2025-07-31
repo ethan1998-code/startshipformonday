@@ -1,12 +1,17 @@
-// Vercel serverless function for Slack - Manual handling
-const { App } = require('@slack/bolt');
-const crypto = require('crypto');
+// Vercel serverless function using Bolt HTTPReceiver
+const { App, HTTPReceiver } = require('@slack/bolt');
 const axios = require('axios');
 
-// Create Bolt app (we'll handle HTTP manually)
+// Create HTTP receiver for Vercel
+const receiver = new HTTPReceiver({
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
+  processBeforeResponse: true
+});
+
+// Create Bolt app with HTTP receiver
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
+  receiver,
   processBeforeResponse: true
 });
 
@@ -132,100 +137,19 @@ app.event('app_home_opened', async ({ event, client }) => {
   }
 });
 
-// Slack signature verification
-function verifySlackSignature(signingSecret, timestamp, rawBody, signature) {
-  const baseString = 'v0:' + timestamp + ':' + rawBody;
-  const expectedSignature = 'v0=' + crypto
-    .createHmac('sha256', signingSecret)
-    .update(baseString, 'utf8')
-    .digest('hex');
-  
-  return crypto.timingSafeEqual(
-    Buffer.from(expectedSignature, 'utf8'),
-    Buffer.from(signature, 'utf8')
-  );
-}
-
-// Get raw body from request
-async function getRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      resolve(body);
-    });
-    req.on('error', reject);
-  });
-}
-
-// Disable body parsing
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
-
-// Main handler function
+// Export the handler as a proper Vercel function
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    console.log('📥 Incoming request from:', req.headers['user-agent']);
-    
-    // Get raw body
-    const rawBody = await getRawBody(req);
-    console.log('📥 Raw body:', rawBody);
-    
-    // Verify Slack signature
-    const timestamp = req.headers['x-slack-request-timestamp'];
-    const signature = req.headers['x-slack-signature'];
-    
-    if (!verifySlackSignature(process.env.SLACK_SIGNING_SECRET, timestamp, rawBody, signature)) {
-      console.error('❌ Invalid Slack signature');
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    console.log('✅ Slack signature verified');
-
-    // Handle URL verification challenge
-    if (rawBody.includes('"type":"url_verification"')) {
-      const bodyObj = JSON.parse(rawBody);
-      if (bodyObj.type === 'url_verification') {
-        console.log('📋 URL verification challenge');
-        return res.status(200).json({ challenge: bodyObj.challenge });
-      }
-    }
-
-    // Process with Bolt
-    const boltResponse = await app.processEvent({
-      body: rawBody,
-      headers: req.headers,
-      isBase64Encoded: false
+    console.log('📥 Incoming request:', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers
     });
 
-    console.log('✅ Bolt processed successfully');
-
-    // Handle response
-    if (boltResponse) {
-      res.status(boltResponse.statusCode || 200);
-      
-      if (boltResponse.headers) {
-        Object.keys(boltResponse.headers).forEach(key => {
-          res.setHeader(key, boltResponse.headers[key]);
-        });
-      }
-      
-      return res.send(boltResponse.body || '');
-    }
-    
-    return res.status(200).send('OK');
-
+    // Use the HTTPReceiver's requestHandler
+    return await receiver.requestHandler(req, res);
   } catch (error) {
-    console.error('❌ Error in handler:', error);
+    console.error('❌ Error in Vercel handler:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
