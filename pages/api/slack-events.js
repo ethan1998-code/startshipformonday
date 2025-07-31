@@ -1,12 +1,4 @@
-import { App } from '@slack/bolt';
-
-// Initialize Slack app
-const slackApp = new App({
-  token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
-  processBeforeResponse: true,
-});
-
+// Simple API route for Slack Events (without Bolt for now)
 export const config = {
   api: {
     bodyParser: false,
@@ -14,6 +6,15 @@ export const config = {
 };
 
 export default async function handler(req, res) {
+  // Handle GET requests for testing
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      status: 'OK', 
+      message: 'Slack Events API is running',
+      timestamp: new Date().toISOString()
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -31,20 +32,19 @@ export default async function handler(req, res) {
     
     // Handle URL verification challenge
     if (data && data.challenge) {
+      console.log('Received challenge:', data.challenge);
       return res.status(200).json({ challenge: data.challenge });
     }
 
-    // Process the request with Slack Bolt
-    const slackRequest = {
-      body: data,
-      headers: req.headers,
-    };
-
-    await slackApp.processEvent(slackRequest);
+    // Handle other Slack events
+    console.log('Received Slack event:', data);
     
-    return res.status(200).send('OK');
+    return res.status(200).json({ status: 'OK' });
   } catch (error) {
     console.error('Error processing Slack event:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
   }
 }
