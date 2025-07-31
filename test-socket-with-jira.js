@@ -23,7 +23,7 @@ const app = new App({
   port: process.env.PORT || 3000,
 });
 
-// Handler simplifié pour /ticket
+// Handler amélioré pour /ticket avec interface moderne
 app.command('/ticket', async ({ command, ack, respond }) => {
   await ack();
   
@@ -33,10 +33,61 @@ app.command('/ticket', async ({ command, ack, respond }) => {
   if (!summary) {
     await respond({
       response_type: 'ephemeral',
-      text: '❌ Veuillez fournir un résumé. Usage: `/ticket Votre résumé ici`'
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '❌ *Erreur de syntaxe*\n\nVeuillez fournir un résumé pour votre ticket.'
+          }
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '*Usage:* `/ticket Votre résumé ici`\n*Exemple:* `/ticket Corriger le bug de connexion`'
+          }
+        }
+      ]
     });
     return;
   }
+
+  // Afficher un message de confirmation avec design moderne
+  await respond({
+    response_type: 'ephemeral',
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '🔄 *Création de votre ticket en cours...*'
+        }
+      },
+      {
+        type: 'section',
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*Titre:*\n${summary}`
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Projet:*\n${process.env.JIRA_PROJECT_KEY || 'AL'}`
+          }
+        ]
+      },
+      {
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: '⏱️ Veuillez patienter pendant la création...'
+          }
+        ]
+      }
+    ]
+  });
 
   try {
     // Créer un vrai ticket Jira
@@ -47,6 +98,7 @@ app.command('/ticket', async ({ command, ack, respond }) => {
     }
     
     const auth = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
+    
     
     const jiraData = {
       fields: {
@@ -62,7 +114,48 @@ app.command('/ticket', async ({ command, ack, respond }) => {
               type: 'paragraph',
               content: [
                 {
-                  text: `Ticket créé depuis Slack par <@${command.user_id}>\n\nCanal: <#${command.channel_id}>`,
+                  text: `📋 Ticket créé depuis Slack`,
+                  type: 'text',
+                  marks: [{ type: 'strong' }]
+                }
+              ]
+            },
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  text: `👤 Créé par: `,
+                  type: 'text'
+                },
+                {
+                  text: `<@${command.user_id}>`,
+                  type: 'text',
+                  marks: [{ type: 'code' }]
+                }
+              ]
+            },
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  text: `📍 Canal: `,
+                  type: 'text'
+                },
+                {
+                  text: `<#${command.channel_id}>`,
+                  type: 'text',
+                  marks: [{ type: 'code' }]
+                }
+              ]
+            },
+            {
+              type: 'rule'
+            },
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  text: `📝 Description: ${summary}`,
                   type: 'text'
                 }
               ]
@@ -94,6 +187,7 @@ app.command('/ticket', async ({ command, ack, respond }) => {
     
     console.log('✅ Ticket Jira créé:', ticketKey);
     
+    // Répondre avec l'interface moderne améliorée
     await respond({
       response_type: 'in_channel',
       blocks: [
@@ -101,20 +195,57 @@ app.command('/ticket', async ({ command, ack, respond }) => {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `🎫 *Ticket Jira créé avec succès!*\n\n*${ticketKey}*: ${summary}\n\n📍 Projet: ${process.env.JIRA_PROJECT_KEY}\n👤 Créé par: <@${command.user_id}>`
+            text: `🎫 *Ticket créé avec succès !*`
+          },
+          accessory: {
+            type: 'button',
+            text: {
+              type: 'plain_text',
+              text: 'Ouvrir dans Jira',
+              emoji: true
+            },
+            value: ticketKey,
+            url: ticketUrl,
+            action_id: 'open_jira_ticket'
           }
         },
         {
-          type: 'actions',
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*ID du ticket:*\n\`${ticketKey}\``
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Statut:*\n🆕 Nouveau`
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Projet:*\n${process.env.JIRA_PROJECT_KEY || 'AL'}`
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Créé par:*\n<@${command.user_id}>`
+            }
+          ]
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Titre:* ${summary}`
+          }
+        },
+        {
+          type: 'divider'
+        },
+        {
+          type: 'context',
           elements: [
             {
-              type: 'button',
-              text: {
-                type: 'plain_text',
-                text: 'Voir dans Jira'
-              },
-              url: ticketUrl,
-              action_id: 'view_jira_ticket'
+              type: 'mrkdwn',
+              text: `✅ Ticket ajouté au backlog • ${new Date().toLocaleString('fr-FR')}`
             }
           ]
         }
@@ -125,12 +256,36 @@ app.command('/ticket', async ({ command, ack, respond }) => {
     console.error('❌ Erreur création ticket:', error);
     await respond({
       response_type: 'ephemeral',
-      text: `❌ Erreur lors de la création du ticket: ${error.message}`
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '❌ *Erreur lors de la création du ticket*'
+          }
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `\`\`\`\n${error.message}\`\`\``
+          }
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: '💡 Vérifiez vos permissions Jira ou contactez l\'administrateur'
+            }
+          ]
+        }
+      ]
     });
   }
 });
 
-// Handler pour @starship mentions avec IA
+// Handler amélioré pour @starship mentions avec analyse IA professionnelle
 app.event('app_mention', async ({ event, say, client }) => {
   console.log('🤖 Mention @starship reçue:', event.text);
   
@@ -138,7 +293,34 @@ app.event('app_mention', async ({ event, say, client }) => {
     // Vérifier si c'est une demande d'aide simple
     if (event.text.toLowerCase().includes('help')) {
       await say({
-        text: `Salut <@${event.user}>! 👋 Je suis Starship, votre assistant IA pour Jira.\n\nCommandes disponibles:\n• \`/ticket [résumé]\` - Créer un ticket Jira simple\n• \`@starship\` - Analyser ce thread et créer un ticket intelligent avec IA\n• \`@starship help\` - Afficher cette aide`,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `👋 *Bonjour <@${event.user}> !*\n\nJe suis *Starship*, votre assistant IA pour la gestion de projet.`
+            }
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: '*🛠️ Mes capacités:*\n• `/ticket [titre]` - Créer un ticket Jira rapide\n• `@starship` dans un thread - Analyser la conversation et créer un ticket intelligent avec DoD professionnelle\n• `@starship help` - Afficher cette aide'
+            }
+          },
+          {
+            type: 'divider'
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: '💡 *Astuce:* Mentionnez-moi dans un thread de discussion pour que j\'analyse l\'historique complet et crée un ticket détaillé comme un Product Manager !'
+              }
+            ]
+          }
+        ],
         thread_ts: event.ts
       });
       return;
@@ -147,74 +329,221 @@ app.event('app_mention', async ({ event, say, client }) => {
     // Si OpenAI n'est pas configuré, utiliser mode basique
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key_here') {
       await say({
-        text: `🤖 Analyse IA non disponible (clé OpenAI manquante).\n\nUtilisez \`/ticket [résumé]\` pour créer un ticket simple.`,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: '⚠️ *Analyse IA indisponible*\n\nLa clé OpenAI n\'est pas configurée.'
+            }
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: '*Alternative:* Utilisez `/ticket [résumé]` pour créer un ticket simple.'
+            }
+          }
+        ],
         thread_ts: event.ts
       });
       return;
     }
 
-    // Récupérer l'historique du thread (avec gestion d'erreur)
-    console.log('📜 Récupération de l\'historique du thread...');
-    
-    let conversationContext = event.text || '';
-    let threadHistory = null;
-    
-    try {
-      threadHistory = await client.conversations.replies({
-        channel: event.channel,
-        ts: event.thread_ts || event.ts,
-        limit: 50
-      });
-      
-      if (threadHistory.messages && threadHistory.messages.length > 0) {
-        conversationContext = threadHistory.messages
-          .filter(msg => msg.text && !msg.text.includes('<@U'))  // Filtrer les mentions
-          .map(msg => `• ${msg.text}`)
-          .join('\n');
-      }
-    } catch (error) {
-      console.log('⚠️ Impossible de récupérer l\'historique, utilisation du message actuel:', error.message);
-      conversationContext = `Message actuel: ${event.text}`;
-    }
-
-    console.log('🧠 Contexte préparé pour OpenAI:', conversationContext.substring(0, 200) + '...');
-
-    // Analyser avec OpenAI (simulation pour l'instant)
-    const messageCount = threadHistory ? threadHistory.messages.length : 1;
+    // Message initial d'analyse avec interface moderne
     await say({
-      text: `🔄 Analyse de la conversation en cours avec l'IA...\n\n📝 Messages analysés: ${messageCount}\n⏱️ Génération du ticket intelligent en cours...`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '🧠 *Analyse IA en cours...*'
+          }
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '🔍 Récupération de l\'historique du thread\n⚡ Analyse avec OpenAI GPT-4\n📝 Génération de la Definition of Done'
+          }
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: '⏱️ Cela peut prendre quelques secondes...'
+            }
+          ]
+        }
+      ],
       thread_ts: event.ts
     });
 
-    // TODO: Appel OpenAI réel ici
-    const aiAnalysis = await analyzeWithOpenAI(conversationContext);
+    // Récupérer l'historique COMPLET du thread avec plus de détails
+    console.log('📜 Récupération de l\'historique COMPLET du thread...');
     
-    // Créer le ticket Jira avec l'analyse IA
+    let fullConversationContext = '';
+    let threadHistory = null;
+    let messageCount = 0;
+    
+    try {
+      // Récupérer plus de messages et inclure les metadata
+      threadHistory = await client.conversations.replies({
+        channel: event.channel,
+        ts: event.thread_ts || event.ts,
+        limit: 100, // Augmenté pour capturer plus de contexte
+        inclusive: true
+      });
+      
+      if (threadHistory.messages && threadHistory.messages.length > 0) {
+        messageCount = threadHistory.messages.length;
+        
+        // Construire un contexte riche avec timestamps et utilisateurs
+        fullConversationContext = threadHistory.messages
+          .filter(msg => msg.text && !msg.bot_id) // Exclure les bots mais garder les utilisateurs
+          .map((msg, index) => {
+            const timestamp = new Date(parseFloat(msg.ts) * 1000).toLocaleString('fr-FR');
+            const user = msg.user ? `<@${msg.user}>` : 'Utilisateur';
+            return `[${index + 1}] ${timestamp} - ${user}:\n${msg.text}\n`;
+          })
+          .join('\n---\n');
+          
+        console.log(`📊 ${messageCount} messages récupérés pour l'analyse`);
+      } else {
+        fullConversationContext = `Message initial: ${event.text}`;
+        messageCount = 1;
+      }
+    } catch (error) {
+      console.log('⚠️ Erreur récupération historique:', error.message);
+      fullConversationContext = `Message actuel: ${event.text}`;
+      messageCount = 1;
+    }
+
+    console.log('🧠 Contexte préparé pour analyse IA:', fullConversationContext.substring(0, 300) + '...');
+
+    // Analyser avec OpenAI en mode Product Manager professionnel
+    const aiAnalysis = await analyzeWithOpenAIProductManager(fullConversationContext, messageCount);
+    
+    // Créer le ticket Jira avec l'analyse IA professionnelle
     const ticketResult = await createIntelligentJiraTicket(aiAnalysis, event.user, event.channel);
     
+    // Réponse avec interface moderne et détaillée
     await say({
-      text: `✅ **Ticket intelligent créé!**\n\n🎫 **${ticketResult.key}**: ${ticketResult.title}\n\n📋 **Description générée par IA**\n🔗 [Voir dans Jira](${ticketResult.url})`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '✅ *Ticket intelligent créé par l\'IA !*'
+          },
+          accessory: {
+            type: 'button',
+            text: {
+              type: 'plain_text',
+              text: 'Ouvrir dans Jira',
+              emoji: true
+            },
+            url: ticketResult.url,
+            action_id: 'open_ai_ticket'
+          }
+        },
+        {
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*Ticket ID:*\n\`${ticketResult.key}\``
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Messages analysés:*\n${messageCount} messages`
+            }
+          ]
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*� Titre généré:*\n${ticketResult.title}`
+          }
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: '🤖 Analysé par OpenAI GPT-4 • Definition of Done générée automatiquement'
+            }
+          ]
+        }
+      ],
       thread_ts: event.ts
     });
 
   } catch (error) {
     console.error('❌ Erreur analyse IA:', error);
     await say({
-      text: `❌ Erreur lors de l'analyse IA: ${error.message}`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '❌ *Erreur lors de l\'analyse IA*'
+          }
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `\`\`\`\n${error.message}\`\`\``
+          }
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: '💡 Réessayez ou utilisez `/ticket` pour un ticket simple'
+            }
+          ]
+        }
+      ],
       thread_ts: event.ts
     });
   }
 });
 
-// Fonction d'analyse OpenAI
-async function analyzeWithOpenAI(conversationText) {
-  console.log('🧠 Analyse avec OpenAI...', conversationText.substring(0, 100));
+// Fonction d'analyse OpenAI spécialisée Product Manager
+async function analyzeWithOpenAIProductManager(conversationText, messageCount) {
+  console.log('🧠 Analyse Product Manager avec OpenAI...', conversationText.substring(0, 100));
   
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key_here') {
-    // Simulation pour les tests
+    // Simulation sophistiquée pour les tests
     return {
-      title: "Fonctionnalité analysée par IA",
-      description: `Analyse automatique de la conversation.\n\nDefinition of Done:\n- Analyser les requirements\n- Implémenter la solution\n- Tester la fonctionnalité\n- Documenter les changements\n\nContexte:\n${conversationText.substring(0, 500)}`
+      title: "Feature analysée automatiquement",
+      description: `**🎯 CONTEXTE**
+Cette tâche a été générée automatiquement à partir d'une conversation Slack de ${messageCount} messages.
+
+**📋 DESCRIPTION**
+Analyse et implémentation basée sur les discussions de l'équipe.
+
+**✅ DEFINITION OF DONE**
+- [ ] Analyser les requirements identifiés dans la conversation
+- [ ] Implémenter la solution proposée
+- [ ] Effectuer les tests unitaires et d'intégration
+- [ ] Documenter les changements apportés
+- [ ] Valider avec les stakeholders
+- [ ] Déployer en environnement de test
+- [ ] Obtenir l'approbation finale
+
+**🔗 CONTEXTE ORIGINAL**
+${conversationText.substring(0, 500)}...
+
+**📊 CRITÈRES D'ACCEPTATION**
+- La solution doit répondre aux besoins exprimés
+- Le code doit respecter les standards de qualité
+- La documentation doit être mise à jour`
     };
   }
 
@@ -222,48 +551,92 @@ async function analyzeWithOpenAI(conversationText) {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const prompt = `Analysez cette conversation Slack et générez un ticket Jira structuré:
+    const expertPrompt = `Tu es un Product Manager senior expérimenté. Analyse cette conversation Slack d'équipe et génère un ticket Jira professionnel.
 
-CONVERSATION:
+CONVERSATION SLACK (${messageCount} messages):
+===
 ${conversationText}
+===
 
-Générez un JSON avec:
-1. "title": Un titre concis et actionnable
-2. "description": Une description détaillée avec Definition of Done
+INSTRUCTIONS:
+1. Génère un titre concis et actionnable (max 60 caractères)
+2. Crée une description structurée comme un PM professionnel avec:
+   - 🎯 Contexte business
+   - 📋 Description détaillée
+   - ✅ Definition of Done complète et précise
+   - 📊 Critères d'acceptation spécifiques
+   - 🔗 Références ou dépendances si mentionnées
 
-Répondez uniquement en JSON valide.`;
+RÈGLES:
+- DoD doit avoir 5-8 points actionables avec checkboxes
+- Utilise les emojis pour la lisibilité
+- Sois spécifique et mesurable
+- Inclus les aspects techniques ET business
+- Format Markdown professionnel
 
-    console.log('🤖 Envoi à OpenAI...');
+Réponds UNIQUEMENT en JSON valide avec cette structure:
+{
+  "title": "Titre concis et actionnable",
+  "description": "Description markdown structurée comme décrit ci-dessus"
+}`;
+
+    console.log('🤖 Envoi à OpenAI GPT-4 (mode Product Manager)...');
     
     const response = await openai.chat.completions.create({
       model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1000,
-      temperature: 0.7
+      messages: [{ role: "user", content: expertPrompt }],
+      max_tokens: 1500,
+      temperature: 0.3 // Plus déterministe pour la cohérence professionnelle
     });
 
     const content = response.choices[0].message.content.trim();
-    console.log('✅ Réponse OpenAI reçue:', content.substring(0, 200));
+    console.log('✅ Réponse OpenAI reçue:', content.substring(0, 200) + '...');
     
-    // Nettoyer la réponse si elle contient des markdown
+    // Nettoyer la réponse
     const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
     
     return JSON.parse(cleanContent);
   } catch (error) {
     console.error('❌ Erreur OpenAI:', error.message);
-    // Fallback en cas d'erreur
+    // Fallback professionnel en cas d'erreur
     return {
-      title: "Ticket analysé automatiquement",
-      description: `Analyse automatique basée sur: ${conversationText.substring(0, 300)}...\n\nDefinition of Done:\n- Analyser les requirements\n- Implémenter la solution\n- Tester la fonctionnalité`
+      title: "Tâche analysée par IA",
+      description: `**🎯 CONTEXTE**
+Ticket généré automatiquement à partir d'une conversation Slack de ${messageCount} messages.
+
+**📋 DESCRIPTION**
+${conversationText.substring(0, 400)}...
+
+**✅ DEFINITION OF DONE**
+- [ ] Analyser les requirements mentionnés dans la conversation
+- [ ] Concevoir la solution technique appropriée
+- [ ] Implémenter les fonctionnalités demandées
+- [ ] Effectuer les tests unitaires et d'intégration
+- [ ] Rédiger la documentation technique
+- [ ] Effectuer une revue de code
+- [ ] Tester en environnement de staging
+- [ ] Déployer et valider en production
+
+**📊 CRITÈRES D'ACCEPTATION**
+- La solution répond aux besoins exprimés dans la conversation
+- Le code respecte les standards de qualité de l'équipe
+- La documentation est complète et à jour
+- Les tests passent avec succès
+
+**⚠️ NOTE**
+Analyse générée automatiquement - vérifier les détails avec l'équipe.`
     };
   }
 }
 
-// Fonction pour créer un ticket Jira intelligent
+// Fonction pour créer un ticket Jira intelligent avec formatage professionnel
 async function createIntelligentJiraTicket(aiAnalysis, userId, channelId) {
   const axios = require('axios');
   
   const auth = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
+  
+  // Convertir la description Markdown en format Atlassian Document Format (ADF)
+  const descriptionText = aiAnalysis.description || `Ticket créé automatiquement depuis Slack`;
   
   const jiraData = {
     fields: {
@@ -277,14 +650,50 @@ async function createIntelligentJiraTicket(aiAnalysis, userId, channelId) {
             type: 'paragraph',
             content: [
               { 
-                text: aiAnalysis.description || `Ticket créé depuis Slack par ${userId}`, 
+                text: "🤖 TICKET GÉNÉRÉ PAR IA", 
+                type: 'text',
+                marks: [{ type: 'strong' }]
+              }
+            ]
+          },
+          {
+            type: 'rule'
+          },
+          {
+            type: 'paragraph',
+            content: [
+              { 
+                text: descriptionText, 
+                type: 'text' 
+              }
+            ]
+          },
+          {
+            type: 'rule'
+          },
+          {
+            type: 'paragraph',
+            content: [
+              { 
+                text: "📍 MÉTADONNÉES", 
+                type: 'text',
+                marks: [{ type: 'strong' }]
+              }
+            ]
+          },
+          {
+            type: 'paragraph',
+            content: [
+              { 
+                text: `👤 Demandeur: ${userId}\n📱 Canal Slack: ${channelId}\n🕒 Créé: ${new Date().toLocaleString('fr-FR')}\n🤖 Analysé par: OpenAI GPT-4`, 
                 type: 'text' 
               }
             ]
           }
         ]
       },
-      issuetype: { name: process.env.JIRA_ISSUE_TYPE || 'Task' }
+      issuetype: { name: process.env.JIRA_ISSUE_TYPE || 'Task' },
+      labels: ['ai-generated', 'slack-integration', 'starship']
     }
   };
 
@@ -303,6 +712,8 @@ async function createIntelligentJiraTicket(aiAnalysis, userId, channelId) {
       }
     );
 
+    console.log('✅ Ticket Jira créé avec succès:', response.data.key);
+
     return {
       key: response.data.key,
       title: aiAnalysis.title,
@@ -310,7 +721,7 @@ async function createIntelligentJiraTicket(aiAnalysis, userId, channelId) {
     };
   } catch (error) {
     console.error('❌ Erreur détaillée Jira:', error.response?.data || error.message);
-    throw error;
+    throw new Error(`Erreur Jira: ${error.response?.data?.errors ? JSON.stringify(error.response.data.errors) : error.message}`);
   }
 }
 
