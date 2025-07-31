@@ -1,17 +1,30 @@
-// Simple API route for Slack Events (without Bolt for now)
+// Slack Events API for Vercel
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: {
+      sizeLimit: '1mb',
+    },
   },
 };
 
 export default async function handler(req, res) {
+  // Set CORS headers for all requests
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   // Handle GET requests for testing
   if (req.method === 'GET') {
     return res.status(200).json({ 
       status: 'OK', 
       message: 'Slack Events API is running',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      method: 'GET'
     });
   }
 
@@ -19,20 +32,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let body = '';
-  await new Promise((resolve) => {
-    req.on('data', (chunk) => {
-      body += chunk;
-    });
-    req.on('end', resolve);
-  });
-
   try {
-    const data = JSON.parse(body);
+    const data = req.body;
     
     // Handle URL verification challenge
     if (data && data.challenge) {
       console.log('Received challenge:', data.challenge);
+      return res.status(200).json({ challenge: data.challenge });
+    }
+
+    // Handle URL verification with type
+    if (data && data.type === 'url_verification' && data.challenge) {
+      console.log('URL verification challenge:', data.challenge);
       return res.status(200).json({ challenge: data.challenge });
     }
 
