@@ -338,17 +338,21 @@ export default async function handler(req, res) {
       // Send immediate acknowledgment
       res.status(200).send('');
       
-      // Process command asynchronously
+      // Process command asynchronously without setTimeout
       console.log('🎫 Starting async processing...');
-      setTimeout(async () => {
+      
+      // Use setImmediate instead of setTimeout for better async handling
+      setImmediate(async () => {
         try {
           console.log('🎫 Async processing started for /ticket command');
+          console.log('🎫 About to call handleTicketCommand...');
           await handleTicketCommand(formData);
-          console.log('🎫 Async processing completed');
+          console.log('🎫 Async processing completed successfully');
         } catch (error) {
           console.error('❌ Error in async processing:', error);
+          console.error('❌ Error stack:', error.stack);
         }
-      }, 100);
+      });
       
       return;
     }
