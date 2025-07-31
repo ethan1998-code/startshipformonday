@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:endpoints": "node test-endpoints.js",
+    "test:dev": "npm run dev & sleep 3 && node test-endpoints.js && pkill -f 'next dev'"
   },
   "keywords": [],
   "author": "",
