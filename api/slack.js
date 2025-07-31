@@ -29,8 +29,11 @@ export default async function handler(req, res) {
   try {
     // Get raw body data
     const rawBody = await getRawBody(req);
-    console.log('📥 Raw body received:', rawBody);
-    console.log('📥 Headers:', req.headers);
+    console.log('� [DEBUG] Raw body length:', rawBody.length);
+    console.log('🔍 [DEBUG] Raw body content:', rawBody);
+    console.log('� [DEBUG] Content-Type:', req.headers['content-type']);
+    console.log('🔍 [DEBUG] User-Agent:', req.headers['user-agent']);
+    console.log('🔍 [DEBUG] All headers:', JSON.stringify(req.headers, null, 2));
 
     // Handle Slack URL verification challenge
     if (rawBody.includes('"type":"url_verification"')) {
@@ -41,10 +44,17 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('📤 Sending to Bolt:', {
-      body: rawBody,
-      headers: req.headers,
-      isBase64Encoded: false
+    // Parse form data to understand what Slack is sending
+    if (rawBody.startsWith('payload=')) {
+      console.log('🔍 [DEBUG] Detected payload parameter');
+      const decoded = decodeURIComponent(rawBody.substring(8));
+      console.log('🔍 [DEBUG] Decoded payload:', decoded);
+    }
+
+    console.log('📤 Sending to Bolt processEvent:', {
+      bodyLength: rawBody.length,
+      contentType: req.headers['content-type'],
+      userAgent: req.headers['user-agent']
     });
 
     const boltResponse = await app.processEvent({
@@ -52,6 +62,8 @@ export default async function handler(req, res) {
       headers: req.headers,
       isBase64Encoded: false
     });
+
+    console.log('🔍 [DEBUG] Bolt response:', boltResponse);
 
     // Handle the response
     if (boltResponse) {
