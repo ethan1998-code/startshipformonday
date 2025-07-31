@@ -137,5 +137,19 @@ app.event('app_home_opened', async ({ event, client }) => {
   }
 });
 
-// Export the handler
-export default receiver.requestHandler;
+// Export the handler as a proper Vercel function
+export default async function handler(req, res) {
+  try {
+    console.log('📥 Incoming request:', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers
+    });
+
+    // Use the HTTPReceiver's requestHandler
+    return await receiver.requestHandler(req, res);
+  } catch (error) {
+    console.error('❌ Error in Vercel handler:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
