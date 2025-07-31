@@ -48,8 +48,10 @@ function makeHttpRequest(url, options, data) {
       reject(error);
     });
     
-    req.on('timeout', () => {
-      console.error('❌ Request timeout');
+    // Set a 30 second timeout
+    req.setTimeout(30000, () => {
+      console.error('❌ Request timeout (30s)');
+      req.destroy();
       reject(new Error('Request timeout'));
     });
     
@@ -79,6 +81,10 @@ async function createJiraTicket(ticketData) {
     if (!process.env.JIRA_BASE_URL || !process.env.JIRA_EMAIL || !process.env.JIRA_API_TOKEN || !process.env.JIRA_PROJECT_KEY) {
       throw new Error('Missing required Jira environment variables');
     }
+    
+    console.log('🔧 Environment values:');
+    console.log('  - JIRA_BASE_URL:', process.env.JIRA_BASE_URL);
+    console.log('  - JIRA_PROJECT_KEY:', process.env.JIRA_PROJECT_KEY);
     
     const jiraAuth = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
     console.log('🔐 Jira auth token created (length:', jiraAuth.length, ')');
