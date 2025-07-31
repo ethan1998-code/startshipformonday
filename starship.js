@@ -5,25 +5,43 @@ require('dotenv').config();
 
 console.log('🚀 Environment variables test:');
 console.log('SLACK_BOT_TOKEN:', process.env.SLACK_BOT_TOKEN ? '✓ Defined' : '✗ Missing');
-console.log('SLACK_APP_TOKEN:', 'Not needed in HTTP mode');
+console.log('SLACK_APP_TOKEN:', process.env.SLACK_APP_TOKEN ? '✓ Defined' : '✗ Missing');
 console.log('SLACK_SIGNING_SECRET:', process.env.SLACK_SIGNING_SECRET ? '✓ Defined' : '✗ Missing');
 console.log('JIRA_PROJECT_KEY:', process.env.JIRA_PROJECT_KEY || 'Not defined');
 
+// Detect environment - use Socket Mode if SLACK_APP_TOKEN is available, HTTP Mode otherwise
+const useSocketMode = !!process.env.SLACK_APP_TOKEN;
+console.log('🔧 Mode detected:', useSocketMode ? 'Socket Mode (Local)' : 'HTTP Mode (Vercel)');
+
 if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_SIGNING_SECRET) {
-  console.error('❌ Missing environment variables for HTTP mode!');
+  console.error('❌ Missing required environment variables!');
+  process.exit(1);
+}
+
+if (useSocketMode && !process.env.SLACK_APP_TOKEN) {
+  console.error('❌ SLACK_APP_TOKEN required for Socket mode!');
   process.exit(1);
 }
 
 console.log('✅ All variables are defined!');
 
-const app = new App({
+// Configure app based on environment
+const appConfig = {
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
-  socketMode: false, // HTTP mode for Vercel
-  processBeforeResponse: true,
-  // Add custom receiver for better Vercel compatibility
-  receiver: undefined // Let Bolt create the default HTTP receiver
-});
+  processBeforeResponse: true
+};
+
+if (useSocketMode) {
+  // Socket Mode for local development
+  appConfig.socketMode = true;
+  appConfig.appToken = process.env.SLACK_APP_TOKEN;
+} else {
+  // HTTP Mode for Vercel
+  appConfig.socketMode = false;
+}
+
+const app = new App(appConfig);
 
 // Mémoire temporaire pour thread Slack <-> clé Jira
 const threadToJiraKey = {};
@@ -190,11 +208,17 @@ app.event('app_home_opened', async ({ event, client }) => {
 });
 
 (async () => {
-  // Don't start the app in HTTP mode - Vercel will handle the requests
-  console.log('⚡️ Starship configured for HTTP Mode (Vercel)!');
-  console.log('Available endpoints:');
-  console.log('- POST /slack/events (for events)');
-  console.log('- POST /slack/commands (for slash commands)');
+  if (useSocketMode) {
+    // Start the app in Socket mode for local development
+    await app.start();
+    console.log('⚡️ Starship configured for Socket Mode!');
+    console.log('🚀 App is running and connected to Slack!');
+  } else {
+    // HTTP mode for Vercel - don't start the app, let Vercel handle requests
+    console.log('⚡️ Starship configured for HTTP Mode (Vercel)!');
+    console.log('Available endpoints:');
+    console.log('- POST /api/slack (handled by Vercel serverless function)');
+  }
 })();
 
 // Export the app for Vercel serverless functions
