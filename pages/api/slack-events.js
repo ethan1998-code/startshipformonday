@@ -1,3 +1,12 @@
+import { App } from '@slack/bolt';
+
+// Initialize Slack app
+const slackApp = new App({
+  token: process.env.SLACK_BOT_TOKEN,
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
+  processBeforeResponse: true,
+});
+
 export const config = {
   api: {
     bodyParser: false,
@@ -5,36 +14,37 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  console.log("Received method:", req.method);
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  if (req.method === "POST") {
-    let body = "";
-    await new Promise((resolve) => {
-      req.on("data", (chunk) => {
-        body += chunk;
-      });
-      req.on("end", resolve);
+  let body = '';
+  await new Promise((resolve) => {
+    req.on('data', (chunk) => {
+      body += chunk;
     });
+    req.on('end', resolve);
+  });
 
-    console.log("Raw body:", body);
-
-    let data;
-    try {
-      data = JSON.parse(body);
-    } catch (e) {
-      console.log("Failed to parse JSON:", e);
-      return res.status(400).send("Invalid JSON");
-    }
-
-    console.log("Parsed data:", data);
-
+  try {
+    const data = JSON.parse(body);
+    
+    // Handle URL verification challenge
     if (data && data.challenge) {
-      console.log("Responding with challenge:", data.challenge);
       return res.status(200).json({ challenge: data.challenge });
     }
 
-    return res.status(200).send("OK");
-  } else {
-    res.status(405).send("Method Not Allowed");
+    // Process the request with Slack Bolt
+    const slackRequest = {
+      body: data,
+      headers: req.headers,
+    };
+
+    await slackApp.processEvent(slackRequest);
+    
+    return res.status(200).send('OK');
+  } catch (error) {
+    console.error('Error processing Slack event:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
