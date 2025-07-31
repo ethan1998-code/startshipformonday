@@ -1,6 +1,4 @@
 {
-  "version": 2,
-  "name": "starship",
   "functions": {
     "api/slack.js": {
       "maxDuration": 30
@@ -11,14 +9,5 @@
       "src": "/api/slack/(.*)",
       "dest": "/api/slack.js"
     }
-  ],
-  "env": {
-    "SLACK_BOT_TOKEN": "@slack_bot_token",
-    "SLACK_SIGNING_SECRET": "@slack_signing_secret",
-    "JIRA_BASE_URL": "@jira_base_url",
-    "JIRA_EMAIL": "@jira_email",
-    "JIRA_API_TOKEN": "@jira_api_token",
-    "JIRA_PROJECT_KEY": "@jira_project_key",
-    "JIRA_ISSUE_TYPE": "@jira_issue_type"
-  }
+  ]
 }
