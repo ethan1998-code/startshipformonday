@@ -313,15 +313,15 @@ export default async function handler(req, res) {
     console.log('  - Timestamp:', timestamp);
     console.log('  - Signature:', signature);
     
-    // Temporarily bypass signature verification for debugging
-    const signatureValid = true; // verifySlackSignature(process.env.SLACK_SIGNING_SECRET, timestamp, rawBody, signature);
+    // Re-enable signature verification now that Jira is working
+    const signatureValid = verifySlackSignature(process.env.SLACK_SIGNING_SECRET, timestamp, rawBody, signature);
     
     if (!signatureValid) {
       console.error('❌ Invalid Slack signature');
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    console.log('✅ Slack signature verified (bypassed for debugging)');
+    console.log('✅ Slack signature verified');
 
     // Handle URL verification challenge
     if (rawBody.includes('"type":"url_verification"')) {
