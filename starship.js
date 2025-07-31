@@ -20,7 +20,9 @@ const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
   socketMode: false, // HTTP mode for Vercel
-  processBeforeResponse: true
+  processBeforeResponse: true,
+  // Add custom receiver for better Vercel compatibility
+  receiver: undefined // Let Bolt create the default HTTP receiver
 });
 
 // Mémoire temporaire pour thread Slack <-> clé Jira
