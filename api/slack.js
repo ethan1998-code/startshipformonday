@@ -13,9 +13,49 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Use the Bolt app's built-in request handler for Vercel
-    const slackHandler = await app.receiver.requestHandler();
-    return slackHandler(req, res);
+    // Debug: Log incoming request
+    console.log('📥 Incoming request headers:', req.headers);
+    console.log('📥 Incoming request body:', req.body);
+    console.log('📥 Incoming request content-type:', req.headers['content-type']);
+
+    // Handle different content types from Slack
+    let bodyString;
+    if (req.headers['content-type'] && req.headers['content-type'].includes('application/x-www-form-urlencoded')) {
+      // Reconstruct form-encoded string from parsed object
+      const querystring = require('querystring');
+      bodyString = querystring.stringify(req.body);
+    } else {
+      bodyString = JSON.stringify(req.body);
+    }
+
+    console.log('📤 Processed body string:', bodyString);
+    // Log avant envoi à Bolt
+    console.log('📤 Sent to Bolt:', {
+      body: bodyString,
+      headers: req.headers,
+      isBase64Encoded: false
+    });
+
+    const boltResponse = await app.processEvent({
+      body: bodyString,
+      headers: req.headers,
+      isBase64Encoded: false
+    });
+
+    // Handle the response
+    if (boltResponse) {
+      res.status(boltResponse.statusCode || 200);
+      
+      if (boltResponse.headers) {
+        Object.keys(boltResponse.headers).forEach(key => {
+          res.setHeader(key, boltResponse.headers[key]);
+        });
+      }
+      
+      return res.send(boltResponse.body || '');
+    }
+    
+    return res.status(200).send('OK');
   } catch (error) {
     console.error('Error in Slack handler:', error);
     return res.status(500).json({ error: 'Internal server error' });
