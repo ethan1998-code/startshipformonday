@@ -6,29 +6,59 @@ const querystring = require('querystring');
 // Make HTTP request using native Node.js modules
 function makeHttpRequest(url, options, data) {
   return new Promise((resolve, reject) => {
+    console.log('🌐 makeHttpRequest started');
+    console.log('  - URL:', url);
+    console.log('  - Method:', options.method);
+    console.log('  - Headers:', JSON.stringify(options.headers, null, 2));
+    console.log('  - Data length:', data ? data.length : 0);
+    
     const req = https.request(url, options, (res) => {
+      console.log('📡 Response received');
+      console.log('  - Status code:', res.statusCode);
+      console.log('  - Headers:', JSON.stringify(res.headers, null, 2));
+      
       let body = '';
-      res.on('data', chunk => body += chunk);
+      res.on('data', chunk => {
+        body += chunk;
+        console.log('📦 Data chunk received, total length:', body.length);
+      });
+      
       res.on('end', () => {
+        console.log('🏁 Response complete, body length:', body.length);
+        console.log('📄 Response body:', body);
+        
         try {
           const parsed = JSON.parse(body);
           if (res.statusCode >= 200 && res.statusCode < 300) {
+            console.log('✅ Request successful');
             resolve(parsed);
           } else {
+            console.log('❌ Request failed with status:', res.statusCode);
             reject(new Error(`HTTP ${res.statusCode}: ${body}`));
           }
         } catch (error) {
+          console.error('❌ JSON parse error:', error.message);
           reject(new Error(`Parse error: ${error.message}`));
         }
       });
     });
 
-    req.on('error', reject);
+    req.on('error', (error) => {
+      console.error('❌ Request error:', error.message);
+      reject(error);
+    });
+    
+    req.on('timeout', () => {
+      console.error('❌ Request timeout');
+      reject(new Error('Request timeout'));
+    });
     
     if (data) {
+      console.log('📤 Writing data to request...');
       req.write(data);
     }
     
+    console.log('🚀 Ending request...');
     req.end();
   });
 }
@@ -36,9 +66,24 @@ function makeHttpRequest(url, options, data) {
 // Simple Jira ticket creation function
 async function createJiraTicket(ticketData) {
   try {
-    const jiraAuth = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
+    console.log('🎫 createJiraTicket started with data:', ticketData);
     
-    const data = JSON.stringify({
+    // Check environment variables
+    console.log('🔧 Environment check:');
+    console.log('  - JIRA_BASE_URL:', process.env.JIRA_BASE_URL ? 'SET' : 'MISSING');
+    console.log('  - JIRA_EMAIL:', process.env.JIRA_EMAIL ? 'SET' : 'MISSING');
+    console.log('  - JIRA_API_TOKEN:', process.env.JIRA_API_TOKEN ? 'SET' : 'MISSING');
+    console.log('  - JIRA_PROJECT_KEY:', process.env.JIRA_PROJECT_KEY ? 'SET' : 'MISSING');
+    console.log('  - JIRA_ISSUE_TYPE:', process.env.JIRA_ISSUE_TYPE || 'Task (default)');
+    
+    if (!process.env.JIRA_BASE_URL || !process.env.JIRA_EMAIL || !process.env.JIRA_API_TOKEN || !process.env.JIRA_PROJECT_KEY) {
+      throw new Error('Missing required Jira environment variables');
+    }
+    
+    const jiraAuth = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
+    console.log('🔐 Jira auth token created (length:', jiraAuth.length, ')');
+    
+    const jiraPayload = {
       fields: {
         project: {
           key: process.env.JIRA_PROJECT_KEY
@@ -63,7 +108,15 @@ async function createJiraTicket(ticketData) {
           name: process.env.JIRA_ISSUE_TYPE || 'Task'
         }
       }
-    });
+    };
+    
+    console.log('📋 Jira payload prepared:', JSON.stringify(jiraPayload, null, 2));
+    
+    const data = JSON.stringify(jiraPayload);
+    console.log('📤 JSON data length:', data.length);
+
+    const url = `${process.env.JIRA_BASE_URL}/rest/api/3/issue`;
+    console.log('🌐 Making request to:', url);
 
     const options = {
       method: 'POST',
@@ -75,16 +128,16 @@ async function createJiraTicket(ticketData) {
       }
     };
 
-    const response = await makeHttpRequest(
-      `${process.env.JIRA_BASE_URL}/rest/api/3/issue`,
-      options,
-      data
-    );
+    console.log('📤 Request headers:', JSON.stringify(options.headers, null, 2));
+    console.log('🚀 Calling makeHttpRequest...');
+
+    const response = await makeHttpRequest(url, options, data);
 
     console.log('✅ Jira ticket created:', response);
     return response;
   } catch (error) {
     console.error('❌ Error creating Jira ticket:', error.message);
+    console.error('❌ Error stack:', error.stack);
     throw error;
   }
 }
