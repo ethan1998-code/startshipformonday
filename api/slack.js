@@ -1,54 +1,90 @@
 // Direct Slack command handler without Bolt framework
 const crypto = require('crypto');
-const axios = require('axios');
+const https = require('https');
 const querystring = require('querystring');
+
+// Make HTTP request using native Node.js modules
+function makeHttpRequest(url, options, data) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(parsed);
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${body}`));
+          }
+        } catch (error) {
+          reject(new Error(`Parse error: ${error.message}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    
+    if (data) {
+      req.write(data);
+    }
+    
+    req.end();
+  });
+}
 
 // Simple Jira ticket creation function
 async function createJiraTicket(ticketData) {
   try {
     const jiraAuth = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
     
-    const response = await axios.post(
-      `${process.env.JIRA_BASE_URL}/rest/api/3/issue`,
-      {
-        fields: {
-          project: {
-            key: process.env.JIRA_PROJECT_KEY
-          },
-          summary: ticketData.summary,
-          description: {
-            type: 'doc',
-            version: 1,
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    type: 'text',
-                    text: ticketData.description
-                  }
-                ]
-              }
-            ]
-          },
-          issuetype: {
-            name: process.env.JIRA_ISSUE_TYPE || 'Task'
-          }
-        }
-      },
-      {
-        headers: {
-          'Authorization': `Basic ${jiraAuth}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+    const data = JSON.stringify({
+      fields: {
+        project: {
+          key: process.env.JIRA_PROJECT_KEY
+        },
+        summary: ticketData.summary,
+        description: {
+          type: 'doc',
+          version: 1,
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: ticketData.description
+                }
+              ]
+            }
+          ]
+        },
+        issuetype: {
+          name: process.env.JIRA_ISSUE_TYPE || 'Task'
         }
       }
+    });
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${jiraAuth}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      }
+    };
+
+    const response = await makeHttpRequest(
+      `${process.env.JIRA_BASE_URL}/rest/api/3/issue`,
+      options,
+      data
     );
 
-    console.log('✅ Jira ticket created:', response.data);
-    return response.data;
+    console.log('✅ Jira ticket created:', response);
+    return response;
   } catch (error) {
-    console.error('❌ Error creating Jira ticket:', error.response?.data || error.message);
+    console.error('❌ Error creating Jira ticket:', error.message);
     throw error;
   }
 }
@@ -56,11 +92,18 @@ async function createJiraTicket(ticketData) {
 // Send response back to Slack
 async function sendSlackResponse(responseUrl, message) {
   try {
-    await axios.post(responseUrl, message, {
+    const data = JSON.stringify(message);
+    const url = new URL(responseUrl);
+    
+    const options = {
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
       }
-    });
+    };
+
+    await makeHttpRequest(responseUrl, options, data);
     console.log('✅ Response sent to Slack');
   } catch (error) {
     console.error('❌ Error sending response to Slack:', error.message);
