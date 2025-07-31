@@ -5,12 +5,12 @@ require('dotenv').config();
 
 console.log('🚀 Environment variables test:');
 console.log('SLACK_BOT_TOKEN:', process.env.SLACK_BOT_TOKEN ? '✓ Defined' : '✗ Missing');
-console.log('SLACK_APP_TOKEN:', process.env.SLACK_APP_TOKEN ? '✓ Defined' : '✗ Missing');
+console.log('SLACK_APP_TOKEN:', 'Not needed in HTTP mode');
 console.log('SLACK_SIGNING_SECRET:', process.env.SLACK_SIGNING_SECRET ? '✓ Defined' : '✗ Missing');
 console.log('JIRA_PROJECT_KEY:', process.env.JIRA_PROJECT_KEY || 'Not defined');
 
-if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_APP_TOKEN || !process.env.SLACK_SIGNING_SECRET) {
-  console.error('❌ Missing environment variables!');
+if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_SIGNING_SECRET) {
+  console.error('❌ Missing environment variables for HTTP mode!');
   process.exit(1);
 }
 
@@ -19,8 +19,8 @@ console.log('✅ All variables are defined!');
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
-  appToken: process.env.SLACK_APP_TOKEN,
-  socketMode: true,
+  socketMode: false, // HTTP mode for Vercel
+  processBeforeResponse: true
 });
 
 // Mémoire temporaire pour thread Slack <-> clé Jira
@@ -188,9 +188,12 @@ app.event('app_home_opened', async ({ event, client }) => {
 });
 
 (async () => {
-  await app.start();
-  console.log('⚡️ Starship running in Socket Mode!');
-  console.log('Test in Slack:');
-  console.log('- /ticket My first test');
-  console.log('- Open the app home page');
+  // Don't start the app in HTTP mode - Vercel will handle the requests
+  console.log('⚡️ Starship configured for HTTP Mode (Vercel)!');
+  console.log('Available endpoints:');
+  console.log('- POST /slack/events (for events)');
+  console.log('- POST /slack/commands (for slash commands)');
 })();
+
+// Export the app for Vercel serverless functions
+module.exports = app;

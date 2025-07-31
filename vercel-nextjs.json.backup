@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "name": "starship",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/slack/events",
+      "dest": "/api/slack/events/route.ts"
+    },
+    {
+      "src": "/api/jira/auth",
+      "dest": "/api/jira/auth/route.ts"
+    },
+    {
+      "src": "/api/jira/callback",
+      "dest": "/api/jira/callback/route.ts"
+    }
+  ],
+  "env": {
+    "SLACK_BOT_TOKEN": "@slack_bot_token",
+    "SLACK_SIGNING_SECRET": "@slack_signing_secret",
+    "SLACK_CLIENT_ID": "@slack_client_id",
+    "SLACK_CLIENT_SECRET": "@slack_client_secret",
+    "JIRA_CLIENT_ID": "@jira_client_id",
+    "JIRA_CLIENT_SECRET": "@jira_client_secret",
+    "JIRA_REDIRECT_URI": "@jira_redirect_uri",
+    "OPENAI_API_KEY": "@openai_api_key",
+    "NEXTAUTH_URL": "@nextauth_url",
+    "NEXTAUTH_SECRET": "@nextauth_secret"
+  },
+  "functions": {
+    "src/app/api/slack/events/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}

@@ -5,10 +5,12 @@
   "main": "starship.js",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build", 
     "start": "next start",
     "lint": "next lint",
-    "socket": "node starship.js"
+    "socket": "node starship.js",
+    "vercel": "vercel --prod",
+    "vercel-dev": "vercel dev"
   },
   "dependencies": {
     "@slack/bolt": "^4.4.0",
