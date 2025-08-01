@@ -1,5 +1,12 @@
 {
   "version": 2,
+  "regions": ["fra1", "ams1", "lhr1"],
+  "functions": {
+    "api/slack.js": {
+      "regions": ["fra1", "ams1", "lhr1"],
+      "maxDuration": 30
+    }
+  },
   "builds": [
     {
       "src": "api/slack.js",
