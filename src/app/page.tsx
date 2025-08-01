@@ -1,103 +1,98 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            🚀 Starship Slack App
+          </h1>
+          <p className="text-gray-600 mb-8">
+            Application Slack pour créer des tickets Jira
+          </p>
         </div>
+
+        {/* Cards des fonctionnalités */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl">
+          
+          {/* Card Slack Integration */}
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div className="text-center">
+              <div className="text-3xl mb-4">💬</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Commande Slack
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Utilisez <code className="bg-gray-100 px-1 py-0.5 rounded">/ticket</code> dans Slack pour créer des tickets Jira
+              </p>
+              <div className="text-xs text-gray-500">
+                Configuré avec Bolt framework
+              </div>
+            </div>
+          </div>
+
+          {/* Card Test Jira */}
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div className="text-center">
+              <div className="text-3xl mb-4">🎫</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Test Jira API
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Testez directement la création de tickets Jira
+              </p>
+              <Link
+                href="/test-jira"
+                className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                Tester l'API →
+              </Link>
+            </div>
+          </div>
+
+          {/* Card Configuration */}
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div className="text-center">
+              <div className="text-3xl mb-4">⚙️</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Configuration
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Projet: <strong>AL</strong><br/>
+                Type: <strong>Task</strong>
+              </p>
+              <div className="text-xs text-gray-500">
+                Hébergé sur Vercel
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Status de déploiement */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-2xl">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800">
+                Application déployée avec succès
+              </h3>
+              <div className="mt-2 text-sm text-green-700">
+                <p>✅ Webhooks Slack configurés</p>
+                <p>✅ API Jira connectée</p>
+                <p>✅ Régions EU optimisées</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
