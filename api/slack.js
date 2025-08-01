@@ -12,7 +12,24 @@ function makeHttpRequest(url, options, data) {
     console.log('  - Headers:', JSON.stringify(options.headers, null, 2));
     console.log('  - Data length:', data ? data.length : 0);
     
-    const req = https.request(url, options, (res) => {
+    // Parse URL to get hostname and path
+    const urlObj = new URL(url);
+    
+    // Optimize request options for better reliability
+    const requestOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || 443,
+      path: urlObj.pathname + urlObj.search,
+      method: options.method,
+      headers: options.headers,
+      // Add keep-alive and timeout optimizations
+      agent: false, // Disable connection pooling for serverless
+      timeout: 25000 // 25 second timeout
+    };
+    
+    console.log('🔧 Request options:', JSON.stringify(requestOptions, null, 2));
+    
+    const req = https.request(requestOptions, (res) => {
       console.log('📡 Response received');
       console.log('  - Status code:', res.statusCode);
       console.log('  - Headers:', JSON.stringify(res.headers, null, 2));
@@ -48,9 +65,9 @@ function makeHttpRequest(url, options, data) {
       reject(error);
     });
     
-    // Set a 10 second timeout (shorter for Vercel)
-    req.setTimeout(10000, () => {
-      console.error('❌ Request timeout (10s)');
+    // Set a 25 second timeout (maximum for Vercel serverless)
+    req.setTimeout(25000, () => {
+      console.error('❌ Request timeout (25s)');
       req.destroy();
       reject(new Error('Request timeout'));
     });
