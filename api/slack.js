@@ -48,9 +48,9 @@ function makeHttpRequest(url, options, data) {
       reject(error);
     });
     
-    // Set a 30 second timeout
-    req.setTimeout(30000, () => {
-      console.error('❌ Request timeout (30s)');
+    // Set a 10 second timeout (shorter for Vercel)
+    req.setTimeout(10000, () => {
+      console.error('❌ Request timeout (10s)');
       req.destroy();
       reject(new Error('Request timeout'));
     });
