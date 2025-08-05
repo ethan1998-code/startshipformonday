@@ -246,6 +246,44 @@ export class SlackClient {
     ];
   }
 
+  formatMondayItemMessage(itemId: string, itemName: string, boardId: string): any[] {
+    return [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `✅ *Monday.com item created successfully!*`,
+        },
+      },
+      {
+        type: 'section',
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*Item ID:* ${itemId}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Name:* ${itemName}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Board ID:* ${boardId}`,
+          },
+        ],
+      },
+      {
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `Created by Starship for Monday.com 🚀`,
+          },
+        ],
+      },
+    ];
+  }
+
   formatErrorMessage(error: string): any[] {
     return [
       {

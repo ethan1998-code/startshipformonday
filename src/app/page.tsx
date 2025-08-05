@@ -10,7 +10,7 @@ export default function Home() {
             🚀 Starship Slack App
           </h1>
           <p className="text-gray-600 mb-8">
-            Application Slack pour créer des tickets Jira
+            Application Slack pour créer des items Monday.com
           </p>
         </div>
 
@@ -25,7 +25,7 @@ export default function Home() {
                 Commande Slack
               </h3>
               <p className="text-gray-600 text-sm mb-4">
-                Utilisez <code className="bg-gray-100 px-1 py-0.5 rounded">/ticket</code> dans Slack pour créer des tickets Jira
+                Utilisez <code className="bg-gray-100 px-1 py-0.5 rounded">/ticket</code> dans Slack pour créer des items Monday.com
               </p>
               <div className="text-xs text-gray-500">
                 Configuré avec Bolt framework
@@ -38,13 +38,13 @@ export default function Home() {
             <div className="text-center">
               <div className="text-3xl mb-4">🎫</div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Test Jira API
+                Test Monday.com API
               </h3>
               <p className="text-gray-600 text-sm mb-4">
-                Testez directement la création de tickets Jira
+                Testez directement la création d&apos;items Monday.com
               </p>
               <Link
-                href="/test-jira"
+                href="/test-monday"
                 className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 Tester l'API →
@@ -60,7 +60,7 @@ export default function Home() {
                 Configuration
               </h3>
               <p className="text-gray-600 text-sm mb-4">
-                Projet: <strong>AL</strong><br/>
+                Board: <strong>Main Board</strong><br/>
                 Type: <strong>Task</strong>
               </p>
               <div className="text-xs text-gray-500">
@@ -85,7 +85,7 @@ export default function Home() {
               </h3>
               <div className="mt-2 text-sm text-green-700">
                 <p>✅ Webhooks Slack configurés</p>
-                <p>✅ API Jira connectée</p>
+                <p>✅ API Monday.com connectée</p>
                 <p>✅ Régions EU optimisées</p>
               </div>
             </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function TestJira() {
+export default function TestMonday() {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +16,7 @@ export default function TestJira() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/test-jira', {
+      const response = await fetch('/api/test-monday', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ export default function TestJira() {
         setTaskTitle('');
         setTaskDescription('');
       } else {
-        setError(data.error || 'Erreur lors de la création du ticket');
+        setError(data.error || 'Erreur lors de la création de l\'item');
       }
     } catch (err: any) {
       setError(err.message || 'Erreur de connexion');
@@ -48,10 +48,10 @@ export default function TestJira() {
       <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🎫 Test Jira API
+            📋 Test Monday.com API
           </h1>
           <p className="text-gray-600">
-            Créer un ticket Jira directement depuis cette page
+            Créer un item Monday.com directement depuis cette page
           </p>
         </div>
 

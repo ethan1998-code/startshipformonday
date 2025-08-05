@@ -1,5 +1,5 @@
 import { SlackCommandMiddlewareArgs, AllMiddlewareArgs } from '@slack/bolt';
-import { JiraClient, WorkspaceManager } from '@/lib/jira';
+import { MondayClient, WorkspaceManager } from '@/lib/monday';
 import { SlackClient } from '@/lib/slack';
 
 export async function handleTicketCommand(
@@ -13,7 +13,7 @@ export async function handleTicketCommand(
     if (!workspace) {
       await respond({
         response_type: 'ephemeral',
-        text: '❌ Jira integration not configured. Please ask an admin to set up the Jira connection.',
+        text: '❌ Monday.com integration not configured. Please ask an admin to set up the Monday.com connection.',
       });
       return;
     }
@@ -23,34 +23,35 @@ export async function handleTicketCommand(
     if (!text) {
       await respond({
         response_type: 'ephemeral',
-        text: '❌ Please provide a ticket summary. Usage: `/ticket Your ticket summary here`',
+        text: '❌ Please provide an item summary. Usage: `/ticket Your item summary here`',
       });
       return;
     }
 
-    // Create Jira client
-    const jiraClient = new JiraClient(workspace.jiraBaseUrl, workspace.accessToken);
+    // Create Monday.com client
+    const mondayClient = new MondayClient(workspace.accessToken);
 
-    // Create basic ticket
-    const ticket = await jiraClient.createTicket({
-      summary: text,
-      description: `Ticket created from Slack by <@${command.user_id}>\n\nChannel: <#${command.channel_id}>`,
-      projectKey: workspace.defaultProjectKey || 'PROJ',
-      issueType: 'Task',
+    // Create basic item
+    const item = await mondayClient.createItem({
+      boardId: workspace.defaultBoardId || 'default_board',
+      itemName: text,
+      columnValues: {
+        description: `Item created from Slack by <@${command.user_id}>\n\nChannel: <#${command.channel_id}>`,
+      },
     });
 
     // Send success response
     const slackClient = new SlackClient();
-    const blocks = slackClient.formatJiraTicketMessage(
-      ticket.key,
-      ticket.summary,
-      workspace.jiraBaseUrl
+    const blocks = slackClient.formatMondayItemMessage(
+      item.id,
+      item.name,
+      item.board.id
     );
 
     await respond({
       response_type: 'in_channel',
       blocks,
-      text: `✅ Jira ticket ${ticket.key} created successfully!`,
+      text: `✅ Monday.com item ${item.id} created successfully!`,
     });
 
   } catch (error) {

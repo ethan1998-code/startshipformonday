@@ -1,11 +1,11 @@
 {
-  "name": "starship",
+  "name": "starship-for-monday",
   "version": "0.1.0",
   "private": true,
   "main": "starship.js",
   "scripts": {
     "dev": "next dev",
-    "build": "next build", 
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "socket": "node starship.js",
@@ -14,12 +14,15 @@
   },
   "dependencies": {
     "@slack/bolt": "^4.4.0",
+    "autoprefixer": "^10.4.21",
     "axios": "^1.11.0",
     "dotenv": "^17.2.1",
     "next": "15.4.5",
     "openai": "^5.11.0",
+    "postcss": "^8.5.6",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
