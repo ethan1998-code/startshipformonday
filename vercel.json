@@ -2,28 +2,8 @@
   "version": 2,
   "regions": ["fra1", "ams1", "lhr1"],
   "functions": {
-    "api/slack.js": {
-      "regions": ["fra1", "ams1", "lhr1"],
+    "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "builds": [
-    {
-      "src": "api/slack.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 30
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/slack",
-      "dest": "/api/slack.js"
-    },
-    {
-      "src": "/api/slack/(.*)",
-      "dest": "/api/slack.js"
-    }
-  ]
+  }
 }
