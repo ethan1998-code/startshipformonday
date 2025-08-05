@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "regions": ["fra1", "ams1", "lhr1"],
+  "regions": ["fra1", "lhr1"],
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
