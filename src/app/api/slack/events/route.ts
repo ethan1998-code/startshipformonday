@@ -3,37 +3,55 @@ import { App, ExpressReceiver } from '@slack/bolt';
 import { handleTicketCommand } from '@/handlers/ticket-command';
 import { handleMention } from '@/handlers/mention';
 
-// Create Express receiver for HTTP mode
-const receiver = new ExpressReceiver({
-  signingSecret: process.env.SLACK_SIGNING_SECRET!,
-});
+let app: App | null = null;
+let receiver: ExpressReceiver | null = null;
 
-// Initialize Slack app
-const app = new App({
-  token: process.env.SLACK_BOT_TOKEN,
-  receiver,
-});
+// Initialize Slack app lazily
+function getSlackApp() {
+  if (!app && process.env.SLACK_BOT_TOKEN && process.env.SLACK_SIGNING_SECRET) {
+    // Create Express receiver for HTTP mode
+    receiver = new ExpressReceiver({
+      signingSecret: process.env.SLACK_SIGNING_SECRET!,
+    });
 
-// Register event handlers
-app.command('/ticket', handleTicketCommand);
-app.event('app_mention', handleMention);
+    // Initialize Slack app
+    app = new App({
+      token: process.env.SLACK_BOT_TOKEN,
+      receiver,
+    });
 
-// Handle interactive components (buttons)
-app.action('create_jira_ticket', async ({ ack, body, respond }) => {
-  await ack();
-  // Handle ticket creation from button click
-  // Implementation would go here
-});
+    // Register event handlers
+    app.command('/ticket', handleTicketCommand);
+    app.event('app_mention', handleMention);
 
-app.action('modify_jira_ticket', async ({ ack, body, respond }) => {
-  await ack();
-  // Handle ticket modification modal
-  // Implementation would go here
-});
+    // Handle interactive components (buttons)
+    app.action('create_monday_item', async ({ ack, body, respond }) => {
+      await ack();
+      // Handle Monday.com item creation from button click
+      // Implementation would go here
+    });
+
+    app.action('modify_monday_item', async ({ ack, body, respond }) => {
+      await ack();
+      // Handle Monday.com item modification modal
+      // Implementation would go here
+    });
+  }
+  return { app, receiver };
+}
 
 // For HTTP Mode (production)
 export async function POST(request: NextRequest) {
   try {
+    const { app: slackApp, receiver: slackReceiver } = getSlackApp();
+    
+    if (!slackApp || !slackReceiver) {
+      return NextResponse.json(
+        { error: 'Slack app not configured' },
+        { status: 503 }
+      );
+    }
+
     const body = await request.text();
     
     // Parse the body for URL verification
@@ -79,7 +97,7 @@ export async function POST(request: NextRequest) {
     } as any;
 
     // Process with Bolt
-    await receiver.requestHandler(req, res);
+    await slackReceiver.requestHandler(req, res);
 
     return new NextResponse(responseData || '{}', { 
       status: statusCode,
