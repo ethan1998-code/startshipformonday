@@ -43,23 +43,45 @@ function getSlackApp() {
 // For HTTP Mode (production)
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.text();
+    
+    // Parse the body for URL verification
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(body);
+    } catch (e) {
+      return NextResponse.json(
+        { error: 'Invalid JSON' },
+        { status: 400 }
+      );
+    }
+    
+    // Handle URL verification challenge FIRST (before app initialization)
+    if (parsedBody.type === 'url_verification') {
+      console.log('Slack URL verification challenge received:', parsedBody.challenge);
+      
+      // Optional: Verify the token if you have SLACK_VERIFICATION_TOKEN
+      // if (process.env.SLACK_VERIFICATION_TOKEN && parsedBody.token !== process.env.SLACK_VERIFICATION_TOKEN) {
+      //   return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      // }
+      
+      // Slack recommends responding with just the challenge value
+      // We can use either text/plain or application/json
+      return new NextResponse(parsedBody.challenge, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+
+    // Initialize Slack app only if we have the required environment variables
     const { app: slackApp, receiver: slackReceiver } = getSlackApp();
     
     if (!slackApp || !slackReceiver) {
+      console.log('Slack app not configured - missing environment variables');
       return NextResponse.json(
         { error: 'Slack app not configured' },
         { status: 503 }
       );
-    }
-
-    const body = await request.text();
-    
-    // Parse the body for URL verification
-    const parsedBody = JSON.parse(body);
-    
-    // Handle URL verification challenge
-    if (parsedBody.type === 'url_verification') {
-      return NextResponse.json({ challenge: parsedBody.challenge });
     }
 
     // Create a mock Express request/response for Bolt
@@ -113,14 +135,23 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Handle URL verification challenge for GET requests
+// GET endpoint for testing and URL verification
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const challenge = searchParams.get('challenge');
   
   if (challenge) {
+    console.log('Slack URL verification challenge via GET:', challenge);
     return NextResponse.json({ challenge });
   }
   
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    message: 'Slack Events API Endpoint',
+    status: 'Ready',
+    timestamp: new Date().toISOString(),
+    environment: {
+      hasSlackBotToken: !!process.env.SLACK_BOT_TOKEN,
+      hasSlackSigningSecret: !!process.env.SLACK_SIGNING_SECRET,
+    }
+  });
 }
