@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     try {
       parsedBody = JSON.parse(body);
     } catch (e) {
+      console.error('Invalid JSON received:', e);
       return NextResponse.json(
         { error: 'Invalid JSON' },
         { status: 400 }
@@ -60,17 +61,28 @@ export async function POST(request: NextRequest) {
     if (parsedBody.type === 'url_verification') {
       console.log('Slack URL verification challenge received:', parsedBody.challenge);
       
-      // Optional: Verify the token if you have SLACK_VERIFICATION_TOKEN
-      // if (process.env.SLACK_VERIFICATION_TOKEN && parsedBody.token !== process.env.SLACK_VERIFICATION_TOKEN) {
-      //   return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-      // }
-      
-      // Slack recommends responding with just the challenge value
-      // We can use either text/plain or application/json
+      // Always respond to challenge regardless of environment setup
+      // This allows Slack to verify the URL even if tokens aren't configured yet
       return new NextResponse(parsedBody.challenge, {
         status: 200,
         headers: { 'Content-Type': 'text/plain' }
       });
+    }
+
+    // Check environment variables for actual Slack events (not for challenge)
+    if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_SIGNING_SECRET) {
+      console.warn('Slack environment variables not configured:', {
+        hasSlackBotToken: !!process.env.SLACK_BOT_TOKEN,
+        hasSlackSigningSecret: !!process.env.SLACK_SIGNING_SECRET,
+      });
+      return NextResponse.json(
+        { 
+          error: 'Slack app not configured', 
+          message: 'Missing SLACK_BOT_TOKEN or SLACK_SIGNING_SECRET environment variables',
+          received_event_type: parsedBody.type || 'unknown'
+        },
+        { status: 503 }
+      );
     }
 
     // Initialize Slack app only if we have the required environment variables
